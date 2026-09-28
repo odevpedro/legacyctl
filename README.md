@@ -19,31 +19,29 @@ uma convenção que alguém pode esquecer.
 
 ## O pipeline
 
-```
-sources
-   │  ① analyze
-   ▼
- LegacySystem ──► SystemGraph ─────────────┬── GraphML / CSV / SQLite
-   │              │                       │
-   │ ② slice      │                       │
-   ▼              ▼                       │
- BusinessFlow ◄─────┘                      │
-   │ ③ extract-rules                      │
-   ▼                                      │
- rule catalog (CANDIDATE)                  │
-   │ ④ review           ◄── the human gate │
-   ▼                                      │
- (VALIDATED) ──⑤ contract──► OpenAPI 3.1  │
-                       │                   │
-                       ⑥ codegen          │
-                       ▼                   │
-                 .java ── .class           │
-                       │                   │
-   ⑦ verify ◄───────────┘                  │
-      ▼                                    │
-   divergence report ──⑧ report────────────┘
-                     ▼
-              legacy-report.md
+```mermaid
+flowchart TD
+    SRC["sources"] -->|① analyze| SYS["LegacySystem"]
+    SYS --> GRAPH["SystemGraph"]
+    GRAPH --> FORMATS[("GraphML / CSV / SQLite")]
+    GRAPH -->|② slice| FLOW["BusinessFlow"]
+    FLOW -->|③ extract-rules| CAT["rule catalog<br/>CANDIDATE"]
+    CAT -->|④ review| HUMAN{{"the human gate"}}
+    HUMAN --> VAL["VALIDATED"]
+    VAL -->|⑤ contract| API["OpenAPI 3.1"]
+    API -->|⑥ codegen| JAVA[".java"]
+    JAVA --> CLASS[".class"]
+    CLASS -->|⑦ verify| VERIFY{"verify"}
+    VERIFY --> DIV["divergence report"]
+    DIV -->|⑧ report| REPORT["legacy-report.md"]
+
+    HUMAN -.->|"a person decides:<br/>nothing is promoted automatically"| CAT
+
+    classDef artifact fill:#eef4ff,stroke:#4a6fa5
+    classDef gate fill:#fff4e6,stroke:#c47f2a,stroke-width:2px
+    classDef human fill:#fdecec,stroke:#b04a4a,stroke-width:2px
+    class FORMATS,REPORT,DIV artifact
+    class HUMAN,VERIFY human
 ```
 
 O diagrama completo, com artefatos e recusas de cada estágio, está em
