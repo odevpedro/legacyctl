@@ -20,28 +20,26 @@ uma convenção que alguém pode esquecer.
 ## O pipeline
 
 ```mermaid
-flowchart TD
-    SRC["sources"] -->|① analyze| SYS["LegacySystem"]
-    SYS --> GRAPH["SystemGraph"]
-    GRAPH --> FORMATS[("GraphML / CSV / SQLite")]
-    GRAPH -->|② slice| FLOW["BusinessFlow"]
-    FLOW -->|③ extract-rules| CAT["rule catalog<br/>CANDIDATE"]
-    CAT -->|④ review| HUMAN{{"the human gate"}}
-    HUMAN --> VAL["VALIDATED"]
-    VAL -->|⑤ contract| API["OpenAPI 3.1"]
-    API -->|⑥ codegen| JAVA[".java"]
-    JAVA --> CLASS[".class"]
-    CLASS -->|⑦ verify| VERIFY{"verify"}
-    VERIFY --> DIV["divergence report"]
-    DIV -->|⑧ report| REPORT["legacy-report.md"]
+flowchart LR
+    A["① analyze<br/>sources → LegacySystem → SystemGraph<br/><i>GraphML / CSV / SQLite</i>"]
+    B["② slice<br/>BusinessFlow"]
+    C["③ extract-rules<br/>rule catalog (CANDIDATE)"]
+    D{{"④ review<br/>the human gate"}}
+    E["⑤ contract<br/>OpenAPI 3.1 (VALIDATED)"]
+    F["⑥ codegen<br/>.java → .class"]
+    G{{"⑦ verify"}}
+    H["⑧ report<br/>legacy-report.md"]
 
-    HUMAN -.->|"a person decides:<br/>nothing is promoted automatically"| CAT
+    A --> B --> C --> D --> E --> F --> G --> H
+    D -.->|"a person decides:<br/>nothing is promoted automatically"| C
+    G --> DIV[("divergence report")]
 
-    classDef artifact fill:#eef4ff,stroke:#4a6fa5
-    classDef gate fill:#fff4e6,stroke:#c47f2a,stroke-width:2px
+    classDef stage fill:#eef4ff,stroke:#4a6fa5
     classDef human fill:#fdecec,stroke:#b04a4a,stroke-width:2px
-    class FORMATS,REPORT,DIV artifact
-    class HUMAN,VERIFY human
+    classDef artifact fill:#f4f4f4,stroke:#999,stroke-dasharray: 3 3
+    class A,B,C,E,F,H stage
+    class D,G human
+    class DIV artifact
 ```
 
 O diagrama completo, com artefatos e recusas de cada estágio, está em

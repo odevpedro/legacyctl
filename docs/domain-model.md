@@ -112,8 +112,20 @@ share without a second pass.
 `BusinessRule` — the only type in the system that can be `VALIDATED`, and only
 after human review.
 
-```
-status: CANDIDATE → REVIEW → VALIDATED | REJECTED
+```mermaid
+stateDiagram-v2
+    [*] --> CANDIDATE
+    CANDIDATE --> REVIEW : a rule is proposed for review
+    REVIEW --> VALIDATED : a person approves
+    REVIEW --> REJECTED : a person rejects
+    REJECTED --> REVIEW : reopened
+    VALIDATED --> [*] : eligible for the contract
+
+    note right of CANDIDATE
+        The only status an extractor may produce.
+        Promotion to VALIDATED requires
+        reviewed_by and reviewed_at.
+    end note
 ```
 
 `sources: list[RuleSource]` is required and non-empty by construction: each
@@ -151,21 +163,46 @@ finding instead of a calculation someone can get wrong.
 
 ## Type-dependency map
 
-```
-LegacySystem ─┬─ Component ──── Procedure ──── Variable
-              │                     │
-              │                     └──────── Call
-              ├─ SqlStatement ── DatabaseObject / DatabaseProcedure
-              ├─ EntryPoint
-              ├─ StateTransition
-              └─ SourceFragment
+```mermaid
+flowchart TD
+    subgraph AGG["LegacySystem"]
+        direction TB
+        COMP["Component"] --> PROC["Procedure"] --> VAR["Variable"]
+        PROC --> CALL["Call"]
+        SQL["SqlStatement"] --> DBO["DatabaseObject / DatabaseProcedure"]
+        EP["EntryPoint"]
+        ST["StateTransition"]
+        SF["SourceFragment"]
+    end
 
-SystemGraph ─┬─ GraphNode        (ids == canonical domain ids)
-             ├─ GraphEdge        (every edge is evidence, not inference)
-             ├─ Cluster
-             ├─ Hub
-             └─ BusinessFlow ──── SourceFragment
+    subgraph GRA["SystemGraph"]
+        direction TB
+        GN["GraphNode<br/><i>ids == canonical domain ids</i>"]
+        GE["GraphEdge<br/><i>every edge is evidence</i>"]
+        CL["Cluster"]
+        HB["Hub"]
+        BF["BusinessFlow"] --> SF2["SourceFragment"]
+    end
 
-BusinessRule ─── RuleCondition, RuleBehavior, RuleSource, RuleEvidence
-GoldenMasterCase ── VerifyResult ── DivergenceRecord ── DivergenceReport
+    subgraph RULE["Rules and verification"]
+        direction TB
+        BR["BusinessRule"] --> RC["RuleCondition"]
+        BR --> RB["RuleBehavior"]
+        BR --> RS["RuleSource"]
+        BR --> RE["RuleEvidence"]
+        GM["GoldenMasterCase"] --> VR["VerifyResult"]
+        VR --> DR["DivergenceRecord"]
+        DR --> DRP["DivergenceReport"]
+    end
+
+    COMP -.-> COMP
+    GN --- GE
+    GN --- CL
+    GN --- HB
+    GN --- BF
+
+    classDef idem fill:#eef4ff,stroke:#4a6fa5
+    classDef note fill:#f4f4f4,stroke:#999,stroke-dasharray: 3 3
+    class SF2 idem
+    class GE,GN note
 ```

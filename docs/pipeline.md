@@ -4,31 +4,27 @@ Eight stages, each with its own artifact on disk, each able to stop the run.
 The stages are separate on purpose: the whole point of the tool is that a
 person can stop between two of them and read what came out.
 
-```
-  sources
-     │  ① analyze
-     ▼
- LegacySystem ──► SystemGraph ──────────────┬── GraphML / CSV / SQLite
-     │              │                      │
-     │ ② slice      │                      │
-     ▼              ▼                      │
- BusinessFlow ◄─────┘                      │
-     │ ③ extract-rules                     │
-     ▼                                     │
- rule catalog (CANDIDATE)                   │
-     │ ④ review          ◄── the human gate │
-     ▼                                     │
- (VALIDATED) ──⑤ contract──► OpenAPI 3.1    │
-                          │                 │
-                          ⑥ codegen        │
-                          ▼                 │
-                    .java ── .class         │
-                          │                 │
-     ⑦ verify ◄───────────┘                 │
-        ▼                                   │
-     divergence report ──⑧ report───────────┘
-                        ▼
-                 legacy-report.md
+```mermaid
+flowchart LR
+    A["① analyze<br/>sources → LegacySystem → SystemGraph<br/><i>GraphML / CSV / SQLite</i>"]
+    B["② slice<br/>BusinessFlow"]
+    C["③ extract-rules<br/>rule catalog (CANDIDATE)"]
+    D{{"④ review<br/>the human gate"}}
+    E["⑤ contract<br/>OpenAPI 3.1 (VALIDATED)"]
+    F["⑥ codegen<br/>.java → .class"]
+    G{{"⑦ verify"}}
+    H["⑧ report<br/>legacy-report.md"]
+
+    A --> B --> C --> D --> E --> F --> G --> H
+    D -.->|"a person decides:<br/>nothing is promoted automatically"| C
+    G --> DIV[("divergence report")]
+
+    classDef stage fill:#eef4ff,stroke:#4a6fa5
+    classDef human fill:#fdecec,stroke:#b04a4a,stroke-width:2px
+    classDef artifact fill:#f4f4f4,stroke:#999,stroke-dasharray: 3 3
+    class A,B,C,E,F,H stage
+    class D,G human
+    class DIV artifact
 ```
 
 ## ① `legacyctl analyze <root>`
@@ -90,8 +86,13 @@ procedures.
 
 ## ⑥ `legacyctl codegen [--compile]`
 
-```
-OpenAPI ──► openapi-generator ──► .java ──► Maven build ──► .class
+```mermaid
+flowchart LR
+    API["OpenAPI 3.1"] --> GEN["openapi-generator"] --> JAVA[".java"]
+    JAVA --> MVN["Maven build"] --> CLASS[".class"]
+
+    classDef stage fill:#eef4ff,stroke:#4a6fa5
+    class API,GEN,JAVA,MVN,CLASS stage
 ```
 
 **Artifacts:** `java/` (11 `.java`), `java/target/classes/` (12 `.class`),
@@ -134,10 +135,16 @@ coverage nor understate work that was done.
 
 ## The feedback loop
 
-```
-Divergence ──► rule id ──► catalog ──► human decides
-     ▲                                    │
-     └────── re-verify ◄── fix the rule or the new system ◄─┘
+```mermaid
+flowchart LR
+    DIV["divergence"] --> RID["rule id"] --> CAT["catalog"] --> HUMAN{{"human decides"}}
+    HUMAN --> FIX["fix the rule<br/>or the new system"] --> REVERIFY["re-verify"]
+    REVERIFY --> DIV
+
+    classDef human fill:#fdecec,stroke:#b04a4a,stroke-width:2px
+    classDef artifact fill:#eef4ff,stroke:#4a6fa5
+    class HUMAN human
+    class DIV,RID,CAT artifact
 ```
 
 A divergence never changes a rule by itself. It points at one, and the decision
