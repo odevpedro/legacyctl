@@ -1,0 +1,149 @@
+# VB6 adapter: node types, edge types and capabilities.
+#
+# This file guides graph construction: which nodes/edges the adapter is allowed
+# to emit, and which capabilities it supports. It is consumed alongside
+# SKILL.md; neither is runtime.
+
+language: vb6
+reference_parser: proleap
+fallback_parser: structural-python
+sql_normalizer: sqlglot
+
+components:
+  - extension: .frm
+    kind: FORM
+  - extension: .bas
+    kind: MODULE
+  - extension: .cls
+    kind: CLASS
+  - extension: .vbp
+    kind: PROJECT
+
+node_types:
+  FILE:
+    emits: true
+  FORM:
+    emits: true
+  MODULE:
+    emits: true
+  CLASS:
+    emits: true
+  PROCEDURE:
+    emits: true
+    kinds: [PROCEDURE, FUNCTION, METHOD, HANDLER]
+  VARIABLE:
+    emits: true
+    notes: >-
+      type_confidence is `uncertain` when Option Explicit is absent. A variable
+      with no declared type is not a String.
+  DATABASE_TABLE:
+    emits: true
+  DATABASE_VIEW:
+    emits: true
+  DATABASE_PROCEDURE:
+    emits: true
+    notes: >-
+      OUT parameters live here, on the database contract, not on the VB6
+      signature that calls it.
+  SQL_STATEMENT:
+    emits: true
+  ENTRY_POINT:
+    emits: true
+    triggers: ["Form_Load", "Form_Unload", "*_Click", "Menu_Click", "Timer"]
+  HUB:
+    emits: true
+  FLOW:
+    emits: true
+  RULE:
+    emits: true
+
+edge_types:
+  CONTAINS:
+    structural: true
+  CALLS:
+    structural: true
+  READS:
+    structural: true
+    requires: [parsed SQL]
+  WRITES:
+    structural: true
+    requires: [parsed SQL]
+  QUERIES:
+    structural: true
+    requires: [parsed SQL]
+  DEPENDS_ON:
+    structural: true
+  TRIGGERS:
+    structural: true
+  ENTRY_TO:
+    structural: true
+  OBSERVES:
+    semantic: true
+    requires: [evidence]
+    notes: A state observation needs evidence_kind. Inference is not observation.
+  DEFINES:
+    structural: true
+  REFERENCES:
+    structural: true
+  BELONGS_TO:
+    structural: true
+  INVOKES:
+    structural: true
+  HAS_PARAMETER:
+    structural: true
+
+call_kinds:
+  STATIC:
+    resolvable: true
+  DYNAMIC:
+    resolvable: false
+    notes: Target computed at runtime; kept, never dropped.
+  EXTERNAL:
+    resolvable: false
+    notes: VB6 intrinsic or library, not project code.
+  UNRESOLVED:
+    resolvable: false
+    notes: >-
+      Seen but unresolved. Dropping it would shrink the graph and make every
+      slice derived from it confidently wrong.
+
+capabilities:
+  parse_procedures: true
+  parse_signatures: true
+  parse_parameters: true
+  parse_out_params:
+    supported: true
+    notes: Via "{call proc(?, ?)}" in ADO/DAO.
+  parse_state_machine: true
+  embedded_sql: true
+  dynamic_sql:
+    supported: partial
+    notes: >-
+      Reconstruction by concatenation goes to SQLGlot; unreconstructable
+      strings are marked is_dynamic and are not guessed.
+  db_schema_identity:
+    supported: partial
+    notes: >-
+      Absent schema is recorded as db_schema=null with ParseStatus.PARTIAL.
+      Inventing a schema fabricates a database object identity.
+  entry_points: true
+  control_flow:
+    linear: true
+    gotos: flagged
+    notes: GoTo breaks sequential reading; recorded as an attention point.
+  error_handling:
+    on_error_resume_next: attention_point
+    on_error_goto: attention_point
+    notes: Silent error handling can turn a failure path into what looks like a rule.
+
+attention_points:
+  - pattern: "Option Explicit absent"
+    means: implicit Variant variables; types unprovable
+  - pattern: "On Error Resume Next"
+    means: silent error handling may hide behaviour
+  - pattern: "On Error GoTo"
+    means: error interception branch
+  - pattern: "GoTo"
+    means: non-linear control flow
+  - pattern: "string concatenation with &"
+    means: possible dynamic SQL; parse or mark dynamic

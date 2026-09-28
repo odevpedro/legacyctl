@@ -1,0 +1,85 @@
+"""Domain layer: language-agnostic models, enumerations and stable IDs.
+
+This package must not import from ``parsers``, ``graph``, ``llm`` or any
+framework. Dependencies point inwards only.
+"""
+
+from __future__ import annotations
+
+from .enums import (
+    CallKind,
+    ComponentKind,
+    ConsistenciaState,
+    DataAccessMode,
+    DatabaseObjectKind,
+    DivergenceStatus,
+    EdgeKind,
+    EntryPointKind,
+    EvidenceKind,
+    GrupoState,
+    NodeKind,
+    ParseStatus,
+    ProcedureKind,
+    RuleConfidence,
+    RuleStatus,
+    SqlOperation,
+    VerifyStatus,
+)
+from .metrics import Metrics
+from .models import (
+    BusinessFlow,
+    Call,
+    Component,
+    DatabaseObject,
+    DatabaseProcedure,
+    Dependency,
+    DomainModel,
+    EntryPoint,
+    Hub,
+    LegacySystem,
+    Procedure,
+    SourceFile,
+    SourceFragment,
+    SourceLocation,
+    SqlStatement,
+    StateTransition,
+    Variable,
+)
+
+__all__ = [
+    "BusinessFlow",
+    "Call",
+    "CallKind",
+    "Component",
+    "ComponentKind",
+    "ConsistenciaState",
+    "DataAccessMode",
+    "DatabaseObject",
+    "DatabaseObjectKind",
+    "DatabaseProcedure",
+    "Dependency",
+    "DivergenceStatus",
+    "DomainModel",
+    "EdgeKind",
+    "EntryPoint",
+    "EntryPointKind",
+    "EvidenceKind",
+    "GrupoState",
+    "Hub",
+    "LegacySystem",
+    "Metrics",
+    "NodeKind",
+    "ParseStatus",
+    "Procedure",
+    "ProcedureKind",
+    "RuleConfidence",
+    "RuleStatus",
+    "SourceFile",
+    "SourceFragment",
+    "SourceLocation",
+    "SqlOperation",
+    "SqlStatement",
+    "StateTransition",
+    "Variable",
+    "VerifyStatus",
+]

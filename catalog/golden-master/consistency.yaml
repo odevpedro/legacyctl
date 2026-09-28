@@ -1,0 +1,55 @@
+# Golden Master -- fixtures/consistency
+#
+# Curated from the procedure's own source and the OUT parameters it registers.
+# The `{call .executar_consistencia(?, ?)}` string does not carry a schema, so
+# the case records the procedure as observed, unqualified.
+#
+# Only two of the extracted rules have a condition simple enough to decide
+# statically. The others are guarded by VB6 calls, so those cases assert
+# `unknown`: nobody has actually run the legacy system, and pretending the
+# outcome is known would be the exact guess this catalog exists to prevent.
+system_id: SYS-CONSISTENCY
+notes: >-
+  Expectations are what the client registers and reads back around the stored
+  procedure, plus the state sequence written by the VB6 wrapper.
+cases:
+  - case_id: GM-CONSISTENCIA-001
+    flow_id: FLOW-EXECUTARGRUPO
+    entry_point: ExecutarGrupo
+    procedure: .executar_consistencia
+    description: >-
+      A group id below 1 takes the validation branch, so nothing is executed.
+    in_params:
+      idGrupo: "0"
+      parametros: "{}"
+    out_params:
+      RULE-EXECUTARGRUPO-002: fired
+    state_trace:
+      - CRIADO
+      - INCONCLUSIVO
+    evidence: observação manual
+    captured_from: executar_consistencia.bas, procedure ExecutarGrupo
+    tags:
+      - consistencia
+      - validation
+  - case_id: GM-CONSISTENCIA-002
+    flow_id: FLOW-EXECUTARGRUPO
+    entry_point: ExecutarGrupo
+    procedure: .executar_consistencia
+    description: >-
+      A group with blank parameters is rejected by Validation.IsBlank. The
+      guard is a VB6 call, so no static check can confirm the outcome; this
+      case records the observation and the open question, not a verdict.
+    in_params:
+      idGrupo: "42"
+      parametros: ""
+    out_params:
+      RULE-EXECUTARGRUPO-001: unknown
+    state_trace:
+      - CRIADO
+      - INCONCLUSIVO
+    evidence: observação manual
+    confidence: low
+    tags:
+      - consistencia
+      - needs-real-run

@@ -1,0 +1,143 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_FROZEN: "1"
+
+jobs:
+  quality:
+    name: lint + types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install Python 3.12
+        run: uv python install 3.12
+
+      # mypy is configured to read the project deps, so the dev extra is
+      # required here even though this job runs no tests.
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Lint
+        run: make lint
+
+      - name: Type check
+        run: make typecheck
+
+  unit:
+    name: unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install Python 3.12
+        run: uv python install 3.12
+
+      # Deliberately no ``community`` extra: the suite must pass on the offline
+      # deterministic fallbacks, with no LLM, Docker or Java. The clustering
+      # test that needs python-igraph skips itself.
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Run unit tests
+        run: make test
+
+  integration:
+    name: CLI integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install Python 3.12
+        run: uv python install 3.12
+
+      - name: Sync dependencies
+        run: uv sync --extra dev --extra community
+
+      # The full suite includes the CLI pipeline tests, which exercise the
+      # deterministic extractor and the in-process graph store. They do not
+      # need Docker or a hosted model; the codegen stage is unit-tested against
+      # a fake generated tree for the same reason.
+      - name: Run all tests
+        run: make test-all
+
+  determinism:
+    name: determinism guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install Python 3.12
+        run: uv python install 3.12
+
+      # igraph is required here: this is the one place where the seeded-Louvain
+      # guarantee is actually exercised rather than skipped.
+      - name: Sync dependencies
+        run: uv sync --extra dev --extra community
+
+      - name: Rebuild the graph three times and compare
+        run: |
+          for run in 1 2 3; do
+            uv run legacyctl --source fixtures/vb6 --output "output/run-$run" analyze
+          done
+          for run in 2 3; do
+            if ! diff -q output/run-1/graph/system.db output/run-$run/graph/system.db; then
+              echo "::error::graph is not reproducible across runs (run-1 vs run-$run)"
+              exit 1
+            fi
+          done
+          echo "graph is byte-identical across three independent runs"
+
+  demo:
+    name: end-to-end demo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install Python 3.12
+        run: uv python install 3.12
+
+      - name: Sync dependencies
+        run: uv sync --extra dev --extra community
+
+      # ``make demo`` runs the codegen stage, which shells out to Docker for the
+      # OpenAPI Generator and the Maven build. This job is the only one that
+      # needs it, so a Docker-less failure elsewhere does not mask a green
+      # pipeline.
+      - name: Run the full demo chain
+        run: make demo

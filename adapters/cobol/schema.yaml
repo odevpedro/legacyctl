@@ -1,0 +1,141 @@
+# COBOL adapter: node types, edge types and capabilities.
+#
+# PLANNED, NOT IMPLEMENTED. There is no COBOL parser in
+# src/legacyctl/parsers/. This schema records the intended contract so the
+# graph builder, slicer and RuleExtractor keep one code path per language
+# instead of a parallel one. Nothing reads this file yet.
+
+language: cobol
+status: planned
+reference_parser:
+  value: undecided
+  blocker: >-
+    The reference parser depends on the client's dialect (COBOL-85, Enterprise
+    COBOL, Micro Focus). Choosing it is a prerequisite, not a detail.
+fallback_parser:
+  value: none
+  notes: >-
+    Unlike VB6 there is no structural fallback. Without a parser, a COBOL
+    adapter does not run: it would be guessing, and guessing is the failure
+    mode this project exists to avoid.
+interoperability_contract:
+  value: ast-json
+  notes: Same canonical AST JSON as the VB6/ProLeap bridge.
+
+components:
+  - name: copybook
+    kind: MODULE
+  - name: program
+    kind: WORKSPACE
+  - name: JCL
+    kind: JOB
+
+node_types:
+  VARIABLE:
+    emits: true
+    notes: >-
+      01/05 group and elementary items. PIC and OCCURS are part of the
+      identity, not metadata.
+  PROCEDURE:
+    emits: true
+    kinds: [PROCEDURE, PARAGRAPH, METHOD]
+  DATABASE_TABLE:
+    emits: false
+    notes: A VSAM/KSDS dataset is not a relational table; see FileObject.
+  SQL_STATEMENT:
+    emits: true
+  ENTRY_POINT:
+    emits: true
+    triggers: [PROCEDURE DIVISION first paragraph, main program, JCL step]
+  HUB:
+    emits: true
+  FLOW:
+    emits: true
+  RULE:
+    emits: true
+
+edge_types:
+  CONTAINS:
+    structural: true
+  CALLS:
+    structural: true
+    notes: PERFORM, PERFORM THRU range, CALL "LITERAL".
+  READS:
+    structural: true
+  WRITES:
+    structural: true
+  QUERIES:
+    structural: true
+    requires: [normalised EXEC SQL]
+  DEPENDS_ON:
+    structural: true
+  REFERENCES:
+    structural: true
+    notes: COPY of a copybook.
+  HAS_PARAMETER:
+    structural: true
+    notes: >-
+      CALL ... USING and LINKAGE SECTION. Direction is NOT inferable from USING
+      and must come from the interface copybook or catalogue.
+
+call_kinds:
+  STATIC:
+    resolvable: true
+  DYNAMIC:
+    resolvable: false
+    notes: CALL with a computed literal, or an unresolved PERFORM target.
+  EXTERNAL:
+    resolvable: false
+    notes: Subprogram outside the analysed unit.
+  UNRESOLVED:
+    resolvable: false
+    notes: >-
+      Kept, never dropped. Abbreviated 8-character names without an explicit
+      PICTURE must land here rather than be guessed.
+
+capabilities:
+  parse_copybooks: true
+  parse_perform_ranges:
+    supported: true
+    notes: >-
+      PERFORM A THRU B executes a range; collapsing it to a single call loses
+      the logic between A and B.
+  parse_occurs_dynamic:
+    supported: partial
+    notes: OCCURS DEPENDING ON is data-dependent; mark dynamic.
+  parse_redefines:
+    supported: partial
+    notes: >-
+      REDEFINES gives one byte sequence multiple layouts. One type per group is
+      a simplification; the ambiguity must be recorded.
+  embedded_sql:
+    supported: true
+    notes: EXEC SQL ... END-EXEC goes through the normaliser.
+  fixed_columns:
+    columns: 1-72
+    notes: >-
+      Code after column 72 is ignored by the compiler but present in the file.
+      Reading without truncating analyses code that never ran.
+  preprocessor:
+    cbl: unsupported
+    copy: unsupported
+    notes: >-
+      Effective code depends on preprocessing. If it is not executed, what was
+      analysed is not what compiles. This is a coverage limit and must be
+      declared, not hidden.
+
+attention_points:
+  - pattern: "COMP-3 / COMP / DISPLAY"
+    means: same value range, different representation; mixed handling is a silent bug
+  - pattern: "REDEFINES"
+    means: same bytes, multiple layouts; record the ambiguity
+  - pattern: "OCCURS DEPENDING ON"
+    means: record count is data-dependent
+  - pattern: "GO TO / ALTER"
+    means: non-linear flow; ALTER rewrites a GO TO target at run time
+  - pattern: "ON SIZE ERROR"
+    means: arithmetic overflow has an explicit error path, part of the rule
+  - pattern: "code past column 72"
+    means: truncated by the compiler; not part of the executable program
+  - pattern: "CALL ... USING without interface copybook"
+    means: parameter direction unknown; do not infer

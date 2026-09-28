@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Tooling caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Pipeline artifacts: regenerable from `make demo`.
+# The catalog and the Golden Masters ARE tracked: the catalog is reviewed in
+# pull requests and the Golden Masters are hand-curated evidence (ADR 005,
+# ADR 009). Everything below is a build product of a run.
+output/
+var/ast/
+*.db
+*.sqlite
+generated/
+demo-new-system/
+contracts/openapi.yaml
+
+# Local secrets / overrides
+.env
+.env.*
+!.env.example

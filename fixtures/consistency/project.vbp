@@ -1,0 +1,14 @@
+Type=Exe
+Module=ExecutarConsistencia
+Module=Rastreio
+Module=Validation
+Module=Database
+Name="LegacyConsistencia"
+HelpContextID="0"
+VersionCompatible32="393222000"
+CMG="0generated0"
+DPB="0generated0"
+GC="0generated0"
+
+[Host Extender Info]
+&H00000001={3832D640-CF90-11CF-8E43-00A0C911005A};VBE;&H00000000
