@@ -8,6 +8,7 @@ name, ids are stable across runs, and the LLM phase is reproducible offline.
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -130,6 +131,21 @@ def test_approve_is_the_only_path_to_validated(store: RuleCatalogStore) -> None:
     assert rule.status is RuleStatus.VALIDATED
     assert rule.reviewed_by == "hoper"
     assert [r.id for r in store.validated()] == ["RULE-A-002"]
+
+
+def test_a_review_decision_is_stamped_with_when_it_happened(store: RuleCatalogStore) -> None:
+    """ADR 005: the catalog keeps the sequence of decisions, so a decision without
+    a timestamp cannot be ordered against the ones around it."""
+    rule = store.review("RULE-A-002", "approve", "hoper", "confirmed")
+    assert rule.reviewed_at is not None
+    assert datetime.fromisoformat(rule.reviewed_at).tzinfo is not None
+
+
+def test_resetting_a_rule_clears_the_stamp_it_no_longer_deserves(store: RuleCatalogStore) -> None:
+    store.review("RULE-A-002", "approve", "hoper", "confirmed")
+    back = store.review("RULE-A-002", "reset", "", "reopened for a second look")
+    assert back.reviewed_at is None
+    assert back.status is RuleStatus.REVIEW
 
 
 def test_reject_records_the_decision(store: RuleCatalogStore) -> None:

@@ -26,7 +26,7 @@ from ..domain.models import (
     LegacySystem,
     SystemGraph,
 )
-from .persistence import write_graph_csv, write_graphml, write_sqlite
+from .persistence import write_graph_csv, write_graph_json, write_graphml, write_sqlite
 
 NODE_ATTRIBUTE_KEYS = (
     "id",
@@ -431,10 +431,20 @@ def export(graph: SystemGraph, output_dir: Path, *, db_path: Path | None = None)
     write_graph_csv(graph, nodes_csv, edges_csv)
     written["nodes_csv"] = str(nodes_csv)
     written["edges_csv"] = str(edges_csv)
+    json_path = output_dir / "system.json"
+    write_graph_json(graph, json_path)
+    written["json"] = str(json_path)
     if db_path is not None:
         write_sqlite(graph, db_path)
         written["sqlite"] = str(db_path)
     return written
 
 
-__all__ = ["LegacyGraphBuilder", "export", "write_graph_csv", "write_graphml", "write_sqlite"]
+__all__ = [
+    "LegacyGraphBuilder",
+    "export",
+    "write_graph_csv",
+    "write_graph_json",
+    "write_graphml",
+    "write_sqlite",
+]

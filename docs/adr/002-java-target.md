@@ -18,6 +18,25 @@ generator `spring`, e compila em bytecode real com
 `maven:3.9-eclipse-temurin-21`. A evidência de sucesso é a produção de
 arquivos `.class`, não a ausência de erro do gerador.
 
+### Divergência registrada: Maven em vez de Gradle
+
+O enunciado do MVP lista **Gradle** como build do alvo Java. Este MVP usa
+Maven. A escolha é deliberada e fica registrada aqui em vez de ser silenciosa:
+
+- `maven:3.9-eclipse-temurin-21` é a imagem oficial do build, com cache de
+  dependências auditável e sem wrapper gerado por tooling local.
+- O `openapi-generator` emite `pom.xml` por padrão para o generator `spring`;
+  usar Gradle exigiria `openapi-generator-gradle-plugin`, que roda o gerador
+  dentro do build em vez de no container que já produz a evidência de
+  compilação.
+- O ponto que o ADR quer provar — que o contrato gera código que **compila de
+  verdade** — é indiferente ao build. `.class` em disco é `.class` em disco.
+
+Trocar para Gradle é trabalho pequeno e mecânico (imagem do container, plugin
+do gerador, `build.gradle.kts` no lugar do `pom.xml`), e não está bloqueado por
+nada aqui. Fica como o próximo passo natural, não como uma descoberta.
+
+
 ## Razões
 
 **O alvo tem que ser o destino real da modernização.** Gerar para uma

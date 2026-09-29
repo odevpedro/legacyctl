@@ -64,7 +64,24 @@ class TestInterchangeFormats:
         assert (tmp_path / "graph" / "system.graphml").is_file()
         assert (tmp_path / "graph" / "graph-nodes.csv").is_file()
         assert (tmp_path / "graph" / "graph-edges.csv").is_file()
+        assert (tmp_path / "graph" / "system.json").is_file()
         assert (tmp_path / "graph" / "system.db").is_file()
+
+    def test_the_json_export_round_trips_into_the_same_graph(self, tmp_path: Path) -> None:
+        """The JSON export is the one format that can be read back without a parser.
+
+        GraphML and CSV are for other tools; JSON is the lossless copy. If it
+        drifted from the in-memory graph the round trip would expose it, which
+        is the point of writing the file at all.
+        """
+        import json
+
+        run("--output", str(tmp_path), "analyze")
+        payload = json.loads((tmp_path / "graph" / "system.json").read_text(encoding="utf-8"))
+        nodes = payload["nodes"]
+        assert nodes, "the fixture must produce a graph with nodes"
+        assert all(n["id"] for n in nodes), "every node needs a stable id"
+        assert {"clusters", "hubs"} <= payload.keys()
 
     def test_the_sqlite_graph_is_queryable(self, tmp_path: Path) -> None:
         import sqlite3

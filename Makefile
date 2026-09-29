@@ -1,5 +1,6 @@
 .PHONY: help sync fmt lint typecheck test test-all pipeline pipeline-consistency \
-        openapi java verify report review clean docker-up docker-down
+        openapi java verify verify-consistency report review clean \
+        demo docker-up docker-down
 
 UV_RUN := uv run
 
@@ -13,7 +14,7 @@ CONS_OUT    := output/consistency
 VB6_GM      := catalog/golden-master/vb6.yaml
 CONS_GM     := catalog/golden-master/consistency.yaml
 ENTRY_VB6   := CustomerForm.ValidateCustomer
-ENTRY_CONS  := ExecutarConsistencia.ExecutarGrupo
+ENTRY_CONS  := ExecutarGrupo
 # The reviewer recorded in the catalog when the demo opens the gate. A real
 # project passes a person's name.
 REVIEWER    ?= make-demo
@@ -73,7 +74,7 @@ pipeline-consistency: ## The same stages for the consistency fixture
 	$(UV_RUN) legacyctl --source $(CONS_SRC) --output $(CONS_OUT) slice \
 		--entry $(ENTRY_CONS) --depth 6
 	$(UV_RUN) legacyctl --source $(CONS_SRC) --output $(CONS_OUT) extract-rules \
-		--slice $(shell ls $(CONS_OUT)/slices/*.json 2>/dev/null | head -1)
+		--slice $(CONS_OUT)/slices/flow-executargrupo.json
 	$(UV_RUN) legacyctl --source $(CONS_SRC) --output $(CONS_OUT) rules
 
 verify: ## Golden Master vs the new system (VB6 fixture)

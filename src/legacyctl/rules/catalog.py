@@ -13,6 +13,7 @@ convention:
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,11 @@ from ..observability import get_log
 
 #: Minimum evidence for a rule to be admitted to the catalog at all.
 MINIMUM_OBSERVATIONS = 1
+
+
+def _now() -> str:
+    """UTC timestamp for a review decision, second resolution, ISO 8601."""
+    return datetime.now(UTC).replace(microsecond=0).isoformat()
 
 
 class RuleRejected(ValueError):
@@ -143,6 +149,10 @@ class RuleCatalogStore:
             raise RuleRejected("a human decision must name the reviewer")
         rule.reviewed_by = reviewer or None
         rule.review_note = note
+        if rule.status in (RuleStatus.VALIDATED, RuleStatus.REJECTED):
+            rule.reviewed_at = _now()
+        else:
+            rule.reviewed_at = None
         if rule.status is RuleStatus.VALIDATED:
             rule.confidence = RuleConfidence.HIGH
         catalog.rules = sorted(catalog.rules, key=lambda r: r.id)

@@ -528,6 +528,7 @@ class BusinessRule(DomainModel):
     procedures: list[str] = Field(default_factory=list)
     review_note: str | None = None
     reviewed_by: str | None = None
+    reviewed_at: str | None = None
 
     def touches(self, node_ids: set[str]) -> bool:
         """True when the rule references any of the given graph node IDs."""
